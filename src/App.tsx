@@ -153,13 +153,9 @@ export default function App() {
             ))}
           </nav>
           <div className="sidebar-note">
-            <span className="note-spark">✳</span>
-            <p>
-              Good work starts
-              <br />
-              with a little clarity.
-            </p>
-            <span>One thing at a time, Jessica.</span>
+            <span className="sidebar-note-kicker">PUBLISHING RHYTHM</span>
+            <p>Tue / Thu / Fri</p>
+            <span>Plan, prepare, and publish with purpose.</span>
           </div>
           <div className="sidebar-bottom">
             <a
