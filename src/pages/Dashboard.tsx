@@ -1,20 +1,16 @@
 import {
   ArrowUpRight,
   CalendarDays,
-  Check,
-  CheckCheck,
   ChevronRight,
   Clock3,
   MessageCircle,
   Plus,
   Sparkles,
-  Video,
   ArrowRight,
-  Leaf,
 } from 'lucide-react'
 import { useDesk } from '../context'
 import { Badge, DemoLabel, Empty } from '../components/ui'
-import { formatDate, makeDemo, todayKey } from '../lib/data'
+import { formatDate, makeDemo, shiftDate, todayKey } from '../lib/data'
 export default function Dashboard() {
   const { data, update, navigate, notify } = useDesk(),
     today = todayKey()
@@ -34,6 +30,15 @@ export default function Dashboard() {
     !data.contents.length && !data.tasks.length && !data.leads.length && !data.captions.length
   const published = data.contents.filter((c) => c.status === 'Published').length
   const demo = [...data.contents, ...data.tasks, ...data.leads].some((r) => r.demo)
+  const publishingRhythm = [
+    { label: 'Tuesday', day: 2 },
+    { label: 'Thursday', day: 4 },
+    { label: 'Friday', day: 5 },
+  ].map(({ label, day }) => {
+    const date = shiftDate((day - new Date().getDay() + 7) % 7)
+    const planned = data.contents.filter((item) => item.date === date).length
+    return { label, date, planned }
+  })
   return (
     <div className="dashboard page-enter">
       <div className="welcome-heading">
@@ -58,50 +63,48 @@ export default function Dashboard() {
           </span>
         </div>
       </div>
-      <section className="focus-banner">
+      <section className="focus-banner taste-focus" aria-label="Today's priorities">
         <div className="focus-copy">
-          <span className="banner-kicker">A FRESH PERSPECTIVE</span>
+          <span className="banner-kicker">THE WORK THAT MATTERS NOW</span>
           <h2>
-            Small steps.
-            <br />
-            Meaningful momentum.
+            {leads.length
+              ? 'Pick up the conversation.'
+              : tasks.length
+                ? 'Move the work forward.'
+                : 'Plan your next content day.'}
           </h2>
           <p>
-            Your ideas, conversations, and to-dos.
-            <br />
-            All in one thoughtful space.
+            {leads.length
+              ? `${leads.length} follow-up${leads.length === 1 ? '' : 's'} due. Start with ${leads[0].name}.`
+              : tasks.length
+                ? `${tasks.length} unfinished task${tasks.length === 1 ? '' : 's'} need attention.`
+                : 'Keep your Tuesday, Thursday, Friday posting rhythm in view.'}
           </p>
-          <button className="btn btn-dark" onClick={() => navigate('planner')}>
-            Plan something good
+          <button
+            className="btn btn-dark"
+            onClick={() => navigate(leads.length ? 'leads' : tasks.length ? 'tasks' : 'planner')}
+          >
+            {leads.length ? 'Review follow-ups' : tasks.length ? 'Open daily tasks' : 'Open content planner'}
             <ArrowUpRight size={17} />
           </button>
         </div>
-        <div className="banner-art" aria-hidden="true">
-          <div className="art-orbit orbit-one" />
-          <div className="art-orbit orbit-two" />
-          <div className="art-sun">✳</div>
-          <div className="art-card back">
-            <div className="art-tiny-label">A LITTLE PROGRESS</div>
-            <div className="art-line" />
-            <div className="art-line short" />
-            <div className="art-progress">
-              <span />
-            </div>
+        <div className="taste-cadence">
+          <div className="taste-cadence-heading">
+            <span>UPCOMING CONTENT DAYS</span>
+            <strong>3 / WEEK</strong>
           </div>
-          <div className="art-card front">
-            <span className="art-check">
-              <Check size={22} />
-            </span>
-            <div>
-              <strong>Make it happen.</strong>
-              <span>One good thing at a time.</span>
-            </div>
-            <span className="art-star">✧</span>
+          <div className="taste-cadence-days">
+            {publishingRhythm.map(({ label, date, planned }) => (
+              <div className="taste-cadence-day" key={label}>
+                <span className="taste-day-name">{label}</span>
+                <strong>{formatDate(date, { month: 'short', day: 'numeric' })}</strong>
+                <small>{planned ? `${planned} planned` : 'Nothing scheduled'}</small>
+              </div>
+            ))}
           </div>
-          <div className="art-pill">
-            <Leaf size={14} />
-            room to grow
-          </div>
+          <span className="taste-cadence-footer">
+            Dates and counts reflect your saved content planner.
+          </span>
         </div>
       </section>
       {isEmpty && (
@@ -131,51 +134,44 @@ export default function Dashboard() {
           Settings.
         </div>
       )}
-      <div className="stats-grid">
+      <div className="stats-grid" aria-label="Workspace overview">
         {[
           {
-            label: 'Content in the works',
-            value: data.contents.filter((c) => c.status !== 'Published').length,
+            label: 'Content in progress',
+            value: data.contents.filter((item) => item.status !== 'Published').length,
             note: `${published} published`,
-            icon: Video,
-            tone: 'peach',
             page: 'planner' as const,
           },
           {
             label: 'Today’s tasks',
             value: `${done}/${dayTasks.length}`,
-            note: dayTasks.length ? `${dayTasks.length - done} left to go` : 'A fresh start awaits',
-            icon: CheckCheck,
-            tone: 'sage',
+            note: dayTasks.length ? `${dayTasks.length - done} remaining` : 'No tasks scheduled today',
             page: 'tasks' as const,
           },
           {
             label: 'Follow-ups due',
             value: leads.length,
-            note: 'Keep the conversation going',
-            icon: MessageCircle,
-            tone: 'sand',
+            note: leads.length ? 'Open conversation queue' : 'Nothing due right now',
             page: 'leads' as const,
           },
           {
             label: 'Caption drafts',
             value: data.captions.length,
-            note: 'Ideas, ready for words',
-            icon: Sparkles,
-            tone: 'lavender',
+            note: 'Saved bilingual drafts',
             page: 'captions' as const,
           },
-        ].map((s) => (
-          <button className="stat-card" key={s.label} onClick={() => navigate(s.page)}>
+        ].map((stat) => (
+          <button
+            className={`stat-card ${stat.page === 'leads' && leads.length ? 'taste-needs-attention' : ''}`}
+            key={stat.label}
+            onClick={() => navigate(stat.page)}
+          >
             <div className="stat-top">
-              <span className={`stat-icon ${s.tone}`}>
-                <s.icon size={19} strokeWidth={1.6} />
-              </span>
-              <ArrowUpRight size={16} className="muted" />
+              <span className="stat-label">{stat.label}</span>
+              <ArrowUpRight size={16} aria-hidden="true" />
             </div>
-            <strong className="stat-value">{s.value}</strong>
-            <span className="stat-label">{s.label}</span>
-            <small>{s.note}</small>
+            <strong className="stat-value">{stat.value}</strong>
+            <small>{stat.note}</small>
           </button>
         ))}
       </div>

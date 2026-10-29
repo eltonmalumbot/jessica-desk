@@ -216,3 +216,23 @@ test('another tab cannot silently overwrite a newer workspace', async ({ page, c
   await expect(page.getByText('Newer task from another tab', { exact: true })).toBeVisible()
   await expect(page.getByText('Stale tab task', { exact: true })).toHaveCount(0)
 })
+
+test('taste dashboard keeps the publishing rhythm truthful across viewports', async ({ page }) => {
+  await page.goto('/')
+  const focus = page.getByRole('region', { name: "Today's priorities" })
+  await expect(focus).toBeVisible()
+  await expect(focus.getByRole('button', { name: 'Open content planner' })).toBeVisible()
+  await expect(page.locator('.taste-cadence-day')).toHaveCount(3)
+  await expect(page.locator('.taste-cadence-day')).toContainText([
+    /Tuesday.*Nothing scheduled/,
+    /Thursday.*Nothing scheduled/,
+    /Friday.*Nothing scheduled/,
+  ])
+  await expect(page.getByRole('button', { name: /Follow-ups due/ })).toContainText('0')
+  for (const width of [1440, 768, 390]) {
+    await page.setViewportSize({ width, height: 900 })
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true)
+  }
+})
